@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+        #map {
+            height: 100%;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        div#footer {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 18px;
+            margin: 0;
+            padding: 6px;
+            z-index: 2;
+            background: WHITE;
+        }
+    </style>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key="></script>
+    <script type="text/javascript">
+        var map;
+        var markers = [];
+
+        function getNormalizedCoord(coord, zoom) {
+            const y = coord.y;
+            let x = coord.x;
+            // tile range in one direction range is dependent on zoom level
+            // 0 = 1 tile, 1 = 2 tiles, 2 = 4 tiles, 3 = 8 tiles, etc
+            const tileRange = 1 << zoom;
+
+            // don't repeat across y-axis (vertically)
+            if (y < 0 || y >= tileRange) {
+                return null;
+            }
+
+            // repeat across x-axis
+            if (x < 0 || x >= tileRange) {
+                x = ((x % tileRange) + tileRange) % tileRange;
+            }
+            return {
+                x: x,
+                y: y
+            };
+        }
+
+        function initialize(latitude, longitude, zoom, osm_url_base = "https://tile.openstreetmap.org/") {
+            var osmtypeid = "osm";
+
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: {
+                    lat: latitude,
+                    lng: longitude
+                },
+                zoom: zoom,
+                mapTypeId: osmtypeid,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+
+            map.mapTypes.set(osmtypeid, new google.maps.ImageMapType({
+                getTileUrl: function(coord, zoom) {
+                    const normalizedCoord = getNormalizedCoord(coord, zoom);
+                    if (!normalizedCoord) {
+                        return "";
+                    }
+                    const url = osm_url_base + zoom + "/" + normalizedCoord.x + "/" + normalizedCoord.y + ".png";
+                    return url;
+                },
+                tileSize: new google.maps.Size(256, 256),
+                name: "OpenStreetMap",
+                maxZoom: 18,
+                minZoom: 0,
+            }));
+
+            new QWebChannel(qt.webChannelTransport, function(channel) {
+                window.qGoogleMaps = channel.objects.qGoogleMaps;
+            });
+
+            /* bounds_changed
+            center_changed
+            click
+            contextmenu
+            dblclick
+            drag
+            dragend
+            dragstart
+            heading_changed
+            idle
+            maptypeid_changed
+            mousemove
+            mouseout
+            mouseover
+            projection_changed
+            resize
+            rightclick
+            tilesloaded
+            tilt_changed
+            zoom_changed */
+
+            google.maps.event.addListener(map, 'click', function(evt) {
+                window.qGoogleMaps.on_click(evt.latLng.lat(), evt.latLng.lng());
+            });
+
+            google.maps.event.addListener(map, 'contextmenu', function(evt) {
+                window.qGoogleMaps.on_contextmenu(evt.latLng.lat(), evt.latLng.lng());
+            });
+
+            google.maps.event.addListener(map, 'dblclick', function(evt) {
+                window.qGoogleMaps.on_dblclick(evt.latLng.lat(), evt.latLng.lng());
+            });
+
+            google.maps.event.addListener(map, 'drag', function(evt) {
+                var center = map.getCenter();
+                window.qGoogleMaps.on_move(center.lat(), center.lng());
+            });
+
+            google.maps.event.addListener(map, 'dragend', function(evt) {
+                var center = map.getCenter();
+                window.qGoogleMaps.on_moveend(center.lat(), center.lng());
+            });
+
+            google.maps.event.addListener(map, 'dragstart', function(evt) {
+                var center = map.getCenter();
+                window.qGoogleMaps.on_movestart(center.lat(), center.lng());
+            });
+
+            google.maps.event.addListener(map, 'rightclick', function(evt) {
+                window.qGoogleMaps.on_rightclick(evt.latLng.lat(), evt.latLng.lng());
+            });
+
+            google.maps.event.addListener(map, 'zoom_changed', function(evt) {
+                var zoom = map.getZoom();
+                window.qGoogleMaps.on_zoom(zoom);
+            });
+        }
+
+        // custom functions
+        function set_center(lat, lng) {
+            map.setCenter(new google.maps.LatLng(lat, lng));
+        }
+
+        function get_center() {
+            var center = map.getCenter();
+            return JSON.stringify([center.lat(), center.lng()]);
+        }
+
+        function get_bounds() {
+            var bounds = map.getBounds();
+            return JSON.stringify([bounds.east, bounds.north, bounds.south, bounds.west]);
+        }
+
+        function pan_to(lat, lng) {
+            map.panTo(new google.maps.LatLng(lat, lng));
+        }
+
+        function set_zoom(zoom) {
+            map.setZoom(zoom);
+        }
+
+        function add_marker(key, latitude, longitude, clickable, draggable, label, title) {
+            if (key in markers) {
+                delete_marker(key);
+            }
+
+            var parameters = {
+                clickable: clickable,
+                draggable: draggable,
+                label: label,
+                map: map,
+                position: new google.maps.LatLng(latitude, longitude),
+                title: title,
+            };
+            var marker = new google.maps.Marker(parameters);
+
+            google.maps.event.addListener(marker, 'drag', function() {
+                window.qGoogleMaps.on_marker_move(key, marker.position.lat(), marker.position.lng())
+            });
+
+            google.maps.event.addListener(marker, 'dragend', function() {
+                window.qGoogleMaps.on_marker_moveend(key, marker.position.lat(), marker.position.lng())
+            });
+
+            google.maps.event.addListener(marker, 'dragstart', function() {
+                window.qGoogleMaps.on_marker_movestart(key, marker.position.lat(), marker.position.lng())
+            });
+
+            google.maps.event.addListener(marker, 'click', function() {
+                window.qGoogleMaps.on_marker_click(key, marker.position.lat(), marker.position.lng())
+            });
+
+            google.maps.event.addListener(marker, 'dblclick', function() {
+                window.qGoogleMaps.on_marker_dblclick(key, marker.position.lat(), marker.position.lng())
+            });
+
+            google.maps.event.addListener(marker, 'rightclick', function() {
+                window.qGoogleMaps.on_marker_rightclick(key, marker.position.lat(), marker.position.lng())
+            });
+
+            markers[key] = marker;
+        }
+
+        function move_marker(key, latitude, longitude) {
+            var coords = new google.maps.LatLng(latitude, longitude);
+            markers[key].setPosition(coords);
+        }
+
+        function delete_marker(key) {
+            markers[key].setMap(null);
+            delete markers[key];
+        }
+
+        function change_marker(key, clickable, draggable, label, title) {
+            if (!(key in markers)) {
+                return;
+            }
+            var options = {
+                clickable: clickable,
+                draggable: draggable,
+                label: label,
+                title: title,
+            };
+            markers[key].setOptions(extras);
+        }
+    </script>
+    <title>QGoogleMapsOSM</title>
+</head>
+
+<body onload="initialize('<latitude>', '<longitude>', '<zoom>')">
+    <div id="map"></div>
+    <div id="footer">&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors</div>
+</body>
+
+</html>

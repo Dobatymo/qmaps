@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/css/ol.css" type="text/css">
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        html,
+        body,
+        #map {
+            height: 100%;
+        }
+    </style>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.15.1/build/ol.js"></script>
+    <script type="text/javascript">
+        var map;
+
+        function initialize(latitude, longitude, zoom) {
+            map = new ol.Map({
+                target: 'map',
+                layers: [
+                    new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    })
+                ],
+                view: new ol.View({
+                    center: ol.proj.fromLonLat([longitude, latitude]),
+                    zoom: zoom,
+                    crossOrigin: null
+                })
+            });
+
+            const getCircularReplacer = () => {
+                const seen = new WeakSet();
+                return (key, value) => {
+                    if (typeof value === "object" && value !== null) {
+                        if (seen.has(value)) {
+                            return;
+                        }
+                        seen.add(value);
+                    }
+                    return value;
+                };
+            };
+
+            new QWebChannel(qt.webChannelTransport, function(channel) {
+                window.qOSM = channel.objects.qOSM;
+            });
+
+            map.on('click', function(evt) {
+                var lat, lon;
+                [lon, lat] = ol.proj.toLonLat(evt.coordinate)
+                window.qOSM.on_click(lat, lon);
+            });
+
+            map.on('dblclick', function(evt) {
+                var lat, lon;
+                [lon, lat] = ol.proj.toLonLat(evt.coordinate)
+                window.qOSM.on_dblclick(lat, lon);
+            });
+
+            map.on('error', function(evt) {
+                window.qOSM.on_error(JSON.stringify(evt, getCircularReplacer()));
+            });
+
+            map.on('loadend', function(evt) {
+                window.qOSM.on_loadend();
+            });
+
+            map.on('loadstart', function(evt) {
+                window.qOSM.on_loadstart();
+            });
+
+            map.on('moveend', function(evt) {
+                var minx, miny, maxx, maxy;
+                [minx, miny, maxx, maxy] = evt.map.getView().calculateExtent(evt.map.getSize());
+                [minx, miny] = ol.proj.toLonLat([minx, miny]);
+                [maxx, maxy] = ol.proj.toLonLat([maxx, maxy]);
+                window.qOSM.on_moveend(miny, minx, maxy, maxx);
+            });
+
+            map.on('movestart', function(evt) {
+                var minx, miny, maxx, maxy;
+                [minx, miny, maxx, maxy] = evt.map.getView().calculateExtent(evt.map.getSize());
+                [minx, miny] = ol.proj.toLonLat([minx, miny]);
+                [maxx, maxy] = ol.proj.toLonLat([maxx, maxy]);
+                window.qOSM.on_movestart(miny, minx, maxy, maxx);
+            });
+
+            map.on('pointerdrag', function(evt) {
+                window.qOSM.on_pointerdrag();
+            });
+
+            map.on('pointermove', function(evt) {
+                window.qOSM.on_pointermove();
+            });
+
+            map.on('postcompose', function(evt) {
+                window.qOSM.on_postcompose();
+            });
+
+            map.on('postrender', function(evt) {
+                window.qOSM.on_postrender();
+            });
+
+            map.on('precompose', function(evt) {
+                window.qOSM.on_precompose();
+            });
+
+            map.on('rendercomplete', function(evt) {
+                window.qOSM.on_rendercomplete();
+            });
+
+            map.on('singleclick', function(evt) {
+                var lat, lon;
+                [lon, lat] = ol.proj.toLonLat(evt.coordinate)
+                window.qOSM.on_singleclick(lat, lon);
+            });
+        }
+
+        // custom functions
+        function get_center() {
+            var lat, lon;
+            [lon, lat] = ol.proj.toLonLat(map.getView().getCenter())
+            return JSON.stringify([lat, lon]);
+        }
+
+        function get_zoom() {
+            return JSON.stringify(map.getView().getZoom());
+        }
+
+        function add_layer_point(lat, lon) {
+            var layer = new ol.layer.Vector({
+                source: new ol.source.Vector({
+                    features: [
+                        new ol.Feature({
+                            geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat]))
+                        })
+                    ]
+                })
+            });
+            map.addLayer(layer);
+        }
+
+        function add_overlay_text(lat, lon, text) {
+            var overlay = new ol.Overlay({
+                element: document.createTextNode(text),
+                position: ol.proj.fromLonLat([lon, lat])
+            });
+            map.addOverlay(overlay);
+        }
+    </script>
+    <title>QOpenLayersOSM</title>
+</head>
+
+<body onload="initialize('<latitude>', '<longitude>', '<zoom>')">
+    <div id="map"></div>
+</body>
+
+</html>

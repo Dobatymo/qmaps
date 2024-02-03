@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        html,
+        body,
+        #map {
+            height: 100%;
+        }
+    </style>
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map;
+        var layers = [];
+
+        function initialize(latitude, longitude, zoom) {
+            var options = {
+                center: [latitude, longitude],
+                zoom: zoom
+            };
+            map = L.map('map', options);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            new QWebChannel(qt.webChannelTransport, function(channel) {
+                window.qOSM = channel.objects.qOSM;
+            });
+
+            map.on('click', function(e) {
+                window.qOSM.on_click(e.latlng['lat'], e.latlng['lng'])
+            });
+
+            map.on('contextmenu', function(e) {
+                window.qOSM.on_contextmenu(e.latlng['lat'], e.latlng['lng'])
+            });
+
+            map.on('dblclick', function(e) {
+                window.qOSM.on_dblclick(e.latlng['lat'], e.latlng['lng'])
+            });
+
+            map.on('move', function(e) {
+                var center = map.getCenter();
+                window.qOSM.on_move(center.lat, center.lng)
+            });
+
+            map.on('moveend', function(e) {
+                var center = map.getCenter();
+                window.qOSM.on_moveend(center.lat, center.lng)
+            });
+
+            map.on('movestart', function(e) {
+                var center = map.getCenter();
+                window.qOSM.on_movestart(center.lat, center.lng)
+            });
+
+            map.on('zoom', function(e) {
+                var center = map.getCenter();
+                window.qOSM.on_zoom(center.lat, center.lng, map.getZoom())
+            });
+        }
+
+        // custom functions
+        function get_center() {
+            return JSON.stringify(map.getCenter());
+        }
+
+        function get_zoom() {
+            return JSON.stringify(map.getZoom());
+        }
+
+        function get_bounds() {
+            return JSON.stringify(map.getBounds());
+        }
+
+        function set_view(lat, lng, zoom) {
+            map.setView([lat, lng], zoom);
+        }
+
+        function set_zoom(zoom) {
+            map.setZoom(zoom);
+        }
+
+        function fit_bounds(lat1, lng1, lat2, lng2) {
+            var bounds = [
+                [lat1, lng1],
+                [lat2, lng2]
+            ];
+            map.fitBounds(bounds);
+        }
+
+        function pan_to(lat, lng) {
+            map.panTo([lat, lng]);
+        }
+
+        function add_marker(key, lat, lng, title, opacity, popup) {
+            var options = {
+                title: title,
+                opacity: opacity,
+            };
+            var marker = L.marker([lat, lng], options).addTo(map);
+            if (popup) {
+                marker.bindPopup(popup);
+            }
+            layers[key] = marker;
+        }
+
+        function add_circle(key, lat, lng, radius, color, fillColor, fillOpacity, popup) {
+            var options = {
+                radius: radius,
+                color: color,
+                fillColor: fillColor,
+                fillOpacity: fillOpacity,
+            };
+            var circle = L.circle([lat, lng], options).addTo(map);
+            if (popup) {
+                circle.bindPopup(popup);
+            }
+            layers[key] = circle;
+        }
+
+        function add_polygon(key, latlng_list, smoothFactor, color, weight, popup) {
+            var latlngs = JSON.parse(latlng_list);
+            var options = {
+                smoothFactor: smoothFactor,
+                color: color,
+                weight: weight,
+            };
+            var polygon = L.polygon(latlngs, options).addTo(map);
+            if (popup) {
+                polygon.bindPopup(popup);
+            }
+            layers[key] = polygon;
+        }
+
+        function add_polyline(key, latlng_list, smoothFactor, color, weight, popup) {
+            var latlngs = JSON.parse(latlng_list);
+            var options = {
+                smoothFactor: smoothFactor,
+                color: color,
+                weight: weight,
+            };
+            var polyline = L.polyline(latlngs, options).addTo(map);
+            if (popup) {
+                polyline.bindPopup(popup);
+            }
+            layers[key] = polyline;
+        }
+
+        function add_image_url(key, imageUrl, lat1, lng1, lat2, lng2, opacity, interactive, popup) {
+            var bounds = [
+                [lat1, lng1],
+                [lat2, lng2]
+            ];
+            var options = {
+                opacity: opacity,
+                interactive: interactive
+            };
+            var image = L.imageOverlay(imageUrl, bounds, options).addTo(map);
+            if (popup) {
+                image.bindPopup(popup);
+            }
+            layers[key] = image;
+        }
+
+        function remove_layer(key) {
+            layers[key].remove();
+            delete layers[key];
+        }
+
+        function open_popup(key) {
+            layers[key].openPopup();
+        }
+    </script>
+    <title>QLeafletOSM</title>
+</head>
+
+<body onload="initialize('<latitude>', '<longitude>', '<zoom>')">
+    <div id="map"></div>
+</body>
+
+</html>
