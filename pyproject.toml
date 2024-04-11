@@ -28,12 +28,21 @@ dynamic = [
 ]
 dependencies = [
   "importlib-resources",
-  "pyside2==5.15.2.1",
+]
+[project.optional-dependencies]
+qt5 = [
+  "PySide2>=5.14",
+]
+qt6 = [
+  "PySide6>=6.6",
 ]
 [project.urls]
 Home = "https://github.com/Dobatymo/qmaps"
 
 [tool.black]
+line-length = 120
+
+[tool.ruff]
 line-length = 120
 
 [tool.isort]

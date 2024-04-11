@@ -1,7 +1,11 @@
 from typing import List
 
 from importlib_resources import files
-from PySide2 import QtCore
+
+try:
+    from PySide6 import QtCore
+except ImportError:
+    from PySide2 import QtCore
 
 from .base import QMapBase
 

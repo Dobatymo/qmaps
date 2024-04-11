@@ -1,7 +1,12 @@
 from typing import Optional, Tuple
 
 from importlib_resources import files
-from PySide2.QtCore import Signal, Slot
+
+try:
+    from PySide6.QtCore import Signal, Slot
+except ImportError:
+    from PySide2.QtCore import Signal, Slot
+
 
 from .base import QMapBase
 

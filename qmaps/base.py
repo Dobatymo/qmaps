@@ -3,9 +3,15 @@ import logging
 import webbrowser
 from typing import Any, Optional, Sequence
 
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtWebChannel import QWebChannel
-from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+try:
+    from PySide6 import QtCore, QtGui, QtWidgets
+    from PySide6.QtWebChannel import QWebChannel
+    from PySide6.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+except ImportError:
+    from PySide2 import QtCore, QtGui, QtWidgets
+    from PySide2.QtWebChannel import QWebChannel
+    from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+
 
 logmap = {
     QWebEnginePage.JavaScriptConsoleMessageLevel.InfoMessageLevel: logging.INFO,
