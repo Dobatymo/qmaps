@@ -1,5 +1,7 @@
 # QMaps
 
+Qt maps widget implemented using a WebView. Various JavaScript libraries and mapping services are supported. Full Python to Javascript and JavaScript to Python calls supported.
+
 ## Install
 
 - Windows older than Windows 10 or Python 3.7: `pip install qmaps[qt5]`
