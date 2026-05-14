@@ -4,7 +4,10 @@ import sys
 from argparse import ArgumentParser
 from functools import partial
 
-from PySide2.QtWidgets import QApplication
+try:
+    from PySide6.QtWidgets import QApplication
+except ImportError:
+    from PySide2.QtWidgets import QApplication
 
 from qmaps.leaflet import QLeafletOSM
 

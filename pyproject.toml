@@ -64,3 +64,6 @@ dev = [
     "genutility[test]>=0.0.100",
     "pytest>=8",
 ]
+
+[tool.uv]
+required-version = ">=0.8.4"

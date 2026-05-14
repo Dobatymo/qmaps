@@ -4,7 +4,10 @@ import sys
 from argparse import ArgumentParser
 from functools import partial
 
-from PySide2.QtWidgets import QApplication
+try:
+    from PySide6.QtWidgets import QApplication
+except ImportError:
+    from PySide2.QtWidgets import QApplication
 
 from qmaps.googlemaps import QGoogleMapsGoogleMaps
 
@@ -57,6 +60,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.qt_remote_debugging_port:
-        os.environ["QTWEBENGINE_REMOTE_DEBUGGING"] = str(args.remote_debugging_port)
+        os.environ["QTWEBENGINE_REMOTE_DEBUGGING"] = str(args.qt_remote_debugging_port)
 
     sys.exit(main(args.api_key))

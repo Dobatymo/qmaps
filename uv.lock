@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.8"
 resolution-markers = [
     "python_full_version >= '3.9'",
@@ -297,8 +297,8 @@ provides-extras = ["qt5", "qt6"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "genutility", extras = ["test"], specifier = ">=0.0.114" },
-    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "genutility", extras = ["test"], specifier = ">=0.0.100" },
+    { name = "pytest", specifier = ">=8" },
 ]
 
 [[package]]

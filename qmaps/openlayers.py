@@ -20,7 +20,7 @@ class QOpenLayersOSM(QMapBase):
 
     map_click = QtCore.Signal(float, float)
     map_dblclick = QtCore.Signal(float, float)
-    map_error = QtCore.Signal()
+    map_error = QtCore.Signal(str)
     map_loadend = QtCore.Signal()
     map_loadstart = QtCore.Signal()
     map_moveend = QtCore.Signal(float, float, float, float)
@@ -52,9 +52,9 @@ class QOpenLayersOSM(QMapBase):
     def on_dblclick(self, lat, lng) -> None:
         self.map_dblclick.emit(lat, lng)
 
-    @QtCore.Slot()
-    def on_error(self) -> None:
-        self.map_error.emit()
+    @QtCore.Slot(str)
+    def on_error(self, error: str) -> None:
+        self.map_error.emit(error)
 
     @QtCore.Slot()
     def on_loadend(self) -> None:
